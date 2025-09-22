@@ -1,0 +1,23 @@
+{
+  "name": "taskmaster-pro",
+  "version": "1.0.0",
+  "description": "Gerenciador de tarefas em Electron (caixa flutuante)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Kauã",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kau-99/site-tarefas.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Kau-99/site-tarefas/issues"
+  },
+  "homepage": "https://github.com/Kau-99/site-tarefas#readme"
+}

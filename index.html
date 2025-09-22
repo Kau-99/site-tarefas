@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskMaster Pro - Gerenciador de Tarefas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-tasks"></i> TaskMaster Pro</h1>
+                <p>Organize suas tarefas de forma eficiente</p>
+                <button id="themeToggle" class="theme-toggle" title="Alternar tema (Ctrl+/)" aria-label="Alternar tema">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="input-group">
+                    <input type="text" id="taskInput" placeholder="Adicione uma nova tarefa..." aria-label="Campo para adicionar tarefa">
+                    <button id="addTaskBtn" class="btn-primary" title="Adicionar tarefa (Enter)">
+                        <i class="fas fa-plus"></i> Adicionar
+                    </button>
+                </div>
+                
+                <div class="task-details">
+                    <div class="detail-group">
+                        <label for="taskCategory">Categoria:</label>
+                        <select id="taskCategory">
+                            <option value="work">Trabalho</option>
+                            <option value="personal">Pessoal</option>
+                            <option value="study">Estudo</option>
+                            <option value="health">Saúde</option>
+                            <option value="other">Outro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="detail-group">
+                        <label for="taskPriority">Prioridade:</label>
+                        <select id="taskPriority">
+                            <option value="low">Baixa</option>
+                            <option value="medium" selected>Média</option>
+                            <option value="high">Alta</option>
+                        </select>
+                    </div>
+                    
+                    <div class="detail-group">
+                        <label for="taskDueDate">Vencimento:</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="filters" role="tablist" aria-label="Filtros de tarefas">
+                    <button class="filter-btn active" data-filter="all" title="Mostrar todas"> 
+                        <i class="fas fa-list"></i> Todas
+                    </button>
+                    <button class="filter-btn" data-filter="active" title="Mostrar ativas">
+                        <i class="fas fa-circle"></i> Ativas
+                    </button>
+                    <button class="filter-btn" data-filter="completed" title="Mostrar concluídas">
+                        <i class="fas fa-check-circle"></i> Concluídas
+                    </button>
+                </div>
+                
+                <div class="search-sort">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Pesquisar tarefas..." aria-label="Pesquisar tarefas">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    
+                    <div class="sort-box">
+                        <select id="sortSelect" aria-label="Ordenar tarefas">
+                            <option value="newest">Mais novas primeiro</option>
+                            <option value="oldest">Mais antigas primeiro</option>
+                            <option value="priority">Por prioridade</option>
+                            <option value="alphabetical">Ordem alfabética</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de progresso de conclusão -->
+            <div class="progress-wrapper" aria-hidden="false">
+                <div class="progress-info">
+                    <span>Progresso</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                    <div id="progressFill" class="progress-fill" style="width:0%"></div>
+                </div>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <h3 id="totalTasks">0</h3>
+                    <p>Total</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="activeTasks">0</h3>
+                    <p>Pendentes</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="completedTasks">0</h3>
+                    <p>Concluídas</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="highPriorityTasks">0</h3>
+                    <p>Alta Prioridade</p>
+                </div>
+            </div>
+
+            <ul id="taskList" aria-live="polite"></ul>
+
+            <div class="actions">
+                <button id="clearCompleted" class="btn-secondary" title="Limpar tarefas concluídas">
+                    <i class="fas fa-trash"></i> Limpar Concluídas
+                </button>
+                <button id="exportTasks" class="btn-secondary" title="Exportar tarefas (JSON)">
+                    <i class="fas fa-download"></i> Exportar JSON
+                </button>
+                <button id="exportCSV" class="btn-secondary" title="Exportar tarefas (CSV)">
+                    <i class="fas fa-file-csv"></i> Exportar CSV
+                </button>
+                <button id="importTasks" class="btn-secondary" title="Importar tarefas (JSON)">
+                    <i class="fas fa-upload"></i> Importar Tarefas
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+            </div>
+        </main>
+
+        <footer>
+            <p>Projeto desenvolvido para portfólio Kauã - © 2025</p>
+        </footer>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="confirmationModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content">
+            <h3>Confirmar Exclusão</h3>
+            <p>Tem certeza que deseja excluir esta tarefa?</p>
+            <div class="modal-actions">
+                <button id="confirmDelete" class="btn-danger">Excluir</button>
+                <button id="cancelDelete" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
