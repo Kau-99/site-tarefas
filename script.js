@@ -555,3 +555,12 @@ document.addEventListener('DOMContentLoaded', function() {
         exportTasksToCSV
     };
 });
+// --- Controles da janela ---
+document.querySelector('.win-btn.close').addEventListener('click', () => {
+  window.close(); // fecha a janela (Electron intercepta)
+});
+
+document.querySelector('.win-btn.minimize').addEventListener('click', () => {
+  const { ipcRenderer } = require('electron');
+  ipcRenderer.send('minimize-window');
+});

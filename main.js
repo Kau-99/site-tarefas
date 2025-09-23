@@ -1,94 +1,138 @@
-const { app, BrowserWindow, globalShortcut, Tray, Menu } = require('electron');
+// main.js (corrigido e simplificado para debug)
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
-let mainWindow;
+let mainWindow = null;
 let tray = null;
+let isQuiting = false;
 
-// Criar janela principal
+// --- resolve ícone do tray ---
+function resolveIconPath() {
+  const candidates = process.platform === 'win32'
+    ? ['icon.ico', 'icon.png', path.join('iconset','icon_32x32.png')]
+    : ['icon.png', path.join('iconset','icon_32x32.png'), 'icon.ico'];
+
+  for (const c of candidates) {
+    const full = path.join(__dirname, c);
+    if (fs.existsSync(full)) return full;
+  }
+  return null;
+}
+
+// --- cria janela ---
 function createWindow() {
+  if (mainWindow) return;
+
   mainWindow = new BrowserWindow({
     width: 420,
     height: 600,
-    frame: false,          // sem borda
-    resizable: false,      // tamanho fixo
-    transparent: true,     // permite cantos arredondados
-    hasShadow: true,       // sombra da janela
-    alwaysOnTop: false,    // se quiser sempre visível, mude para true
+    frame: false,
+    resizable: false,
+    transparent: true,
+    hasShadow: true,
+    alwaysOnTop: false,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  mainWindow.loadFile('index.html');
+  const indexPath = path.join(__dirname, 'index.html');
+  console.log("🔗 Carregando HTML:", indexPath);
+
+  mainWindow.loadFile(indexPath).catch(err =>
+    console.error("❌ Erro ao carregar index.html:", err)
+  );
+
+  mainWindow.once('ready-to-show', () => {
+    console.log("🔷 Janela pronta para mostrar.");
+    mainWindow.show();
+    mainWindow.webContents.openDevTools(); // abre DevTools para confirmar CSS
+  });
+
+  mainWindow.on('close', (event) => {
+    if (!isQuiting) {
+      event.preventDefault();
+      console.log("🟨 Fechar interceptado → ocultando janela.");
+      mainWindow.hide();
+    }
+  });
 
   mainWindow.on('closed', () => {
+    console.log("⚠️ Janela destruída.");
     mainWindow = null;
   });
 }
 
-// Criar ícone na bandeja (system tray)
+// --- criar tray ---
 function createTray() {
-  const iconPath = path.join(__dirname, 'icon.png'); // adicione um ícone PNG pequeno (16x16 ou 32x32)
-  tray = new Tray(iconPath);
+  const iconPath = resolveIconPath();
+  try {
+    const icon = iconPath ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty();
+    tray = new Tray(icon);
+    console.log("✅ Tray criado com ícone:", iconPath || 'nenhum');
+  } catch (err) {
+    console.warn("⚠️ Tray sem ícone:", err.message);
+    tray = new Tray(nativeImage.createEmpty());
+  }
 
   const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Mostrar/Ocultar',
-      click: () => {
-        if (!mainWindow) {
-          createWindow();
-        } else {
-          if (mainWindow.isVisible()) {
-            mainWindow.hide();
-          } else {
-            mainWindow.show();
-          }
-        }
-      },
-    },
+    { label: 'Mostrar/Ocultar', click: () => toggleWindow() },
     { type: 'separator' },
-    {
-      label: 'Sair',
-      click: () => {
-        app.quit();
-      },
-    },
+    { label: 'Sair', click: () => { isQuiting = true; app.quit(); } }
   ]);
-
   tray.setToolTip('TaskMaster - Suas tarefas rápidas');
   tray.setContextMenu(contextMenu);
-
-  // Clique simples no tray também abre/fecha
-  tray.on('click', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-      }
-    } else {
-      createWindow();
-    }
-  });
+  tray.on('click', () => toggleWindow());
 }
 
-// Registrar atalhos globais
+// --- toggle window ---
+function toggleWindow() {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isVisible()) {
+    mainWindow.hide();
+  } else {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
+
+// --- atalhos globais ---
 function registerShortcuts() {
-  globalShortcut.register('CommandOrControl+Alt+T', () => {
-    if (!mainWindow) {
-      createWindow();
-    } else {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-      }
+  const shortcuts = ['CommandOrControl+Alt+T', 'CommandOrControl+Shift+Y'];
+  shortcuts.forEach(key => {
+    const ok = globalShortcut.register(key, () => {
+      console.log(`⌨️ Atalho ${key} acionado.`);
+      toggleWindow();
+    });
+    console.log(ok ? `✅ Registrado: ${key}` : `⚠️ Não registrado: ${key}`);
+  });
+}
+
+// --- single instance ---
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 }
 
-// Inicialização
+// --- handlers ---
+process.on('uncaughtException', err => console.error("❌ Uncaught:", err));
+process.on('unhandledRejection', reason => console.error("❌ Rejection:", reason));
+
+// --- app lifecycle ---
 app.whenReady().then(() => {
+  console.log("🚀 App iniciado.");
   createWindow();
   createTray();
   registerShortcuts();
@@ -102,6 +146,11 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on('before-quit', () => {
+  isQuiting = true;
+});
+const { ipcMain } = require('electron');
+
+ipcMain.on('minimize-window', () => {
+  if (mainWindow) mainWindow.minimize();
 });
